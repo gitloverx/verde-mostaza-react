@@ -40,6 +40,8 @@ jobs:
     - name: Build APK with Gradle
       run: |
         cd android
+        # Decirle a Gradle exactamente dónde está el SDK de Android
+        echo "sdk.dir=$ANDROID_HOME" > local.properties
         chmod +x gradlew
         ./gradlew assembleDebug
 
