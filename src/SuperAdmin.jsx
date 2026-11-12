@@ -5,6 +5,7 @@ export default function SuperAdmin({ onLogout }) {
   const [data, setData] = useState({ kpis: { users: 0, orders: 0, sales: 0 }, users: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [searchTerm, setSearchTerm] = useState(''); // Estado para el buscador
 
   const token = localStorage.getItem('token');
   
@@ -15,7 +16,6 @@ export default function SuperAdmin({ onLogout }) {
         const res = await axios.get(`${apiUrl}/superadmin`, {
           headers: { Authorization: `Bearer ${token}` }
         });
-        // Validación para asegurar que los datos existen antes de guardarlos
         if (res.data && res.data.kpis && res.data.users) {
           setData(res.data);
         } else {
@@ -38,9 +38,15 @@ export default function SuperAdmin({ onLogout }) {
       await axios.put(`${apiUrl}/superadmin/promote/${id}`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      window.location.reload(); // Recarga para ver el cambio
+      window.location.reload();
     } catch (err) { alert('Error al ascender'); }
   };
+
+  // Lógica de filtrado: busca por nombre del negocio o por correo
+  const filteredUsers = data.users.filter(u => 
+    (u.business_name && u.business_name.toLowerCase().includes(searchTerm.toLowerCase())) || 
+    (u.email && u.email.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
 
   if (error) {
     return (
@@ -88,9 +94,23 @@ export default function SuperAdmin({ onLogout }) {
             </div>
 
             <div className="bg-white rounded-2xl shadow-sm border border-stone-200 overflow-hidden">
-              <div className="p-4 border-b border-stone-200">
+              {/* HEADER DE LA TABLA CON BUSCADOR */}
+              <div className="p-4 border-b border-stone-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <h2 className="font-bold text-stone-800">Directorio de Tiendas y Roles</h2>
+                <div className="relative w-full md:w-72">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <i className="fa-solid fa-magnifying-glass text-stone-400 text-sm"></i>
+                  </div>
+                  <input 
+                    type="text" 
+                    placeholder="Buscar por tienda o correo..." 
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full bg-stone-50 border border-stone-200 text-stone-900 text-sm rounded-xl pl-10 pr-4 py-2 focus:outline-none focus:border-amber-500 focus:bg-white transition"
+                  />
+                </div>
               </div>
+              
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse min-w-[700px]">
                   <thead>
@@ -103,23 +123,31 @@ export default function SuperAdmin({ onLogout }) {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-stone-100 text-sm">
-                    {data.users.map(u => (
-                      <tr key={u.id} className="hover:bg-stone-50 transition">
-                        <td className="p-3 font-bold text-stone-900">{u.business_name}</td>
-                        <td className="p-3 text-stone-500">{u.email}</td>
-                        <td className="p-3">
-                          <span className={`px-2 py-1 rounded text-xs font-bold ${u.role === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-stone-100 text-stone-600'}`}>
-                            {u.role ? u.role.toUpperCase() : 'USER'}
-                          </span>
-                        </td>
-                        <td className="p-3 font-bold text-amber-600">${Number(u.total_sales || 0).toLocaleString()}</td>
-                        <td className="p-3">
-                          {u.role !== 'admin' && (
-                            <button onClick={() => handlePromote(u.id)} className="text-xs bg-stone-900 text-white px-3 py-1.5 rounded-lg font-bold hover:bg-stone-700">Hacer Admin</button>
-                          )}
+                    {filteredUsers.length > 0 ? (
+                      filteredUsers.map(u => (
+                        <tr key={u.id} className="hover:bg-stone-50 transition">
+                          <td className="p-3 font-bold text-stone-900">{u.business_name}</td>
+                          <td className="p-3 text-stone-500">{u.email}</td>
+                          <td className="p-3">
+                            <span className={`px-2 py-1 rounded text-xs font-bold ${u.role === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-stone-100 text-stone-600'}`}>
+                              {u.role ? u.role.toUpperCase() : 'USER'}
+                            </span>
+                          </td>
+                          <td className="p-3 font-bold text-amber-600">${Number(u.total_sales || 0).toLocaleString()}</td>
+                          <td className="p-3">
+                            {u.role !== 'admin' && (
+                              <button onClick={() => handlePromote(u.id)} className="text-xs bg-stone-900 text-white px-3 py-1.5 rounded-lg font-bold hover:bg-stone-700">Hacer Admin</button>
+                            )}
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan="5" className="p-8 text-center text-stone-500">
+                          No se encontraron tiendas que coincidan con la búsqueda.
                         </td>
                       </tr>
-                    ))}
+                    )}
                   </tbody>
                 </table>
               </div>
