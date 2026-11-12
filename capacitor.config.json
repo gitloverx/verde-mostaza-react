@@ -1,0 +1,9 @@
+{
+  "appId": "com.verdemostaza.app",
+  "appName": "Verde Mostaza",
+  "webDir": "dist",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https"
+  }
+}

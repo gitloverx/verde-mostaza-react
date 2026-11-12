@@ -19,14 +19,16 @@ jobs:
         node-version: 20
 
     - name: Install Dependencies
-      run: npm install
+      run: |
+        npm install
+        npm install @capacitor/core @capacitor/cli @capacitor/android
 
     - name: Build Web App
       run: npm run build
 
     - name: Add and Sync Android Platform
       run: |
-        npx cap add android || true
+        npx cap add android
         npx cap sync android
 
     - name: Setup Java
