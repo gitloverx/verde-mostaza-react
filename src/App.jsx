@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Routes, Route, Navigate, Link } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import Dashboard from './Dashboard';
 import SuperAdmin from './SuperAdmin';
 import UserLogin from './UserLogin';
@@ -26,20 +26,10 @@ export default function App() {
 
   return (
     <Routes>
-      {/* RUTA PÚBLICA: Usuarios */}
-      <Route path="/" element={
-        user ? <Dashboard businessName={user} onLogout={handleLogout} /> : <UserLogin setUser={setUser} />
-      } />
-
-      {/* RUTA OCULTA: Admin Login */}
-      <Route path="/admin" element={
-        admin ? <Navigate to="/admin/panel" /> : <AdminLogin setAdmin={setAdmin} />
-      } />
-
-      {/* RUTA PROTEGIDA: Panel de Admin */}
-      <Route path="/admin/panel" element={
-        admin ? <SuperAdmin onLogout={handleLogout} /> : <Navigate to="/admin" />
-      } />
+      <Route path="/" element={ user ? <Dashboard businessName={user} onLogout={handleLogout} /> : <UserLogin setUser={setUser} /> } />
+      <Route path="/admin" element={ admin ? <Navigate to="/admin/panel" /> : <AdminLogin setAdmin={setAdmin} /> } />
+      <Route path="/admin/panel" element={ admin ? <SuperAdmin onLogout={handleLogout} /> : <Navigate to="/admin" /> } />
+      <Route path="*" element={<Navigate to="/" />} />
     </Routes>
   );
 }
