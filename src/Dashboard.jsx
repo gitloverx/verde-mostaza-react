@@ -13,8 +13,8 @@ export default function Dashboard({ businessName, onLogout }) {
 
   // Estados Modales
   const [showProdModal, setShowProdModal] = useState(false);
-  const [showIconPicker, setShowIconPicker] = useState(false);
   const [showIngModal, setShowIngModal] = useState(false);
+  const [showIconPicker, setShowIconPicker] = useState(false); // Nuevo estado para el selector visual
   
   // Formularios
   const [prodData, setProdData] = useState({ id: null, name: '', description: '', price: 10000, icon: 'fa-solid fa-hotdog', recipe: [] });
@@ -134,6 +134,18 @@ export default function Dashboard({ businessName, onLogout }) {
     if (min < 15) return 'bg-orange-100 text-orange-800 border-orange-200';
     return 'bg-rose-100 text-rose-700 border-rose-300 animate-pulse';
   };
+
+  // Lista completa de íconos disponibles para todos los usuarios
+  const iconsList = [
+    'fa-solid fa-hotdog', 'fa-solid fa-burger', 'fa-solid fa-pizza-slice', 'fa-solid fa-taco',
+    'fa-solid fa-burrito', 'fa-solid fa-drumstick-bite', 'fa-solid fa-fish', 'fa-solid fa-bacon',
+    'fa-solid fa-egg', 'fa-solid fa-cheese', 'fa-solid fa-bread-slice', 'fa-solid fa-bowl-food',
+    'fa-solid fa-utensils', 'fa-solid fa-pepper-hot', 'fa-solid fa-carrot', 'fa-solid fa-apple-whole',
+    'fa-solid fa-lemon', 'fa-solid fa-ice-cream', 'fa-solid fa-cookie', 'fa-solid fa-cake-candles',
+    'fa-solid fa-candy-cane', 'fa-solid fa-mug-hot', 'fa-solid fa-glass-water', 'fa-solid fa-bottle-water',
+    'fa-solid fa-beer-mug-empty', 'fa-solid fa-wine-glass', 'fa-solid fa-martini-glass', 'fa-solid fa-box',
+    'fa-solid fa-bag-shopping', 'fa-solid fa-plus', 'fa-solid fa-seedling', 'fa-solid fa-star'
+  ];
 
   return (
     <div className="bg-stone-100 min-h-screen flex flex-col font-sans select-none pb-20">
@@ -382,9 +394,9 @@ export default function Dashboard({ businessName, onLogout }) {
               </div>
               <div>
                 <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Icono</label>
-                <button type="button" onClick={() => setShowIconPicker(true)} className="w-full bg-stone-100 border border-stone-200 rounded-xl px-3 py-2 text-sm font-medium flex items-center gap-2 focus:outline-none">
+                <button type="button" onClick={() => setShowIconPicker(true)} className="w-full bg-stone-100 border border-stone-200 rounded-xl px-3 py-2 text-sm font-medium flex items-center justify-between focus:outline-none">
                   <i className={`${prodData.icon} text-lg text-amber-600`}></i>
-                  <span className="text-stone-700">Cambiar Icono</span>
+                  <i className="fa-solid fa-chevron-down text-xs text-stone-400"></i>
                 </button>
               </div>
             </div>
@@ -413,39 +425,30 @@ export default function Dashboard({ businessName, onLogout }) {
               </div>
             </div>
 
-
-            {showIconPicker && (
-              <div className="fixed inset-0 bg-stone-900/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
-                <div className="bg-white rounded-2xl p-4 w-full max-w-sm shadow-xl space-y-4">
-                  <div className="flex justify-between items-center border-b pb-2">
-                    <h3 className="font-bold text-stone-900 text-sm">Selecciona un Icono</h3>
-                    <button onClick={() => setShowIconPicker(false)}><i className="fa-solid fa-xmark text-stone-400"></i></button>
-                  </div>
-                  <div className="grid grid-cols-4 gap-2 max-h-60 overflow-y-auto">
-                    {[
-                      'fa-solid fa-hotdog', 'fa-solid fa-burger', 'fa-solid fa-pizza-slice', 'fa-solid fa-taco',
-                      'fa-solid fa-burrito', 'fa-solid fa-drumstick-bite', 'fa-solid fa-fish', 'fa-solid fa-bacon',
-                      'fa-solid fa-egg', 'fa-solid fa-cheese', 'fa-solid fa-bread-slice', 'fa-solid fa-bowl-food',
-                      'fa-solid fa-utensils', 'fa-solid fa-pepper-hot', 'fa-solid fa-carrot', 'fa-solid fa-apple-whole',
-                      'fa-solid fa-lemon', 'fa-solid fa-ice-cream', 'fa-solid fa-cookie', 'fa-solid fa-cake-candles',
-                      'fa-solid fa-candy-cane', 'fa-solid fa-mug-hot', 'fa-solid fa-glass-water', 'fa-solid fa-bottle-water',
-                      'fa-solid fa-beer-mug-empty', 'fa-solid fa-wine-glass', 'fa-solid fa-martini-glass', 'fa-solid fa-box',
-                      'fa-solid fa-bag-shopping', 'fa-solid fa-plus', 'fa-solid fa-seedling', 'fa-solid fa-star'
-                    ].map(icon => (
-                      <button key={icon} onClick={() => { setProdData({...prodData, icon}); setShowIconPicker(false); }}
-                        className={`p-3 rounded-xl border flex items-center justify-center text-xl transition ${prodData.icon === icon ? 'border-amber-500 bg-amber-50 text-amber-600' : 'border-stone-200 text-stone-600 hover:bg-stone-50'}`}>
-                        <i className={icon}></i>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-
             <div className="flex gap-2 pt-2">
               {prodData.id && <button onClick={deleteProduct} className="bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold py-2.5 px-3 rounded-xl text-xs"><i className="fa-solid fa-trash"></i></button>}
               <button onClick={() => setShowProdModal(false)} className="flex-1 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold py-2.5 rounded-xl text-xs">Cancelar</button>
               <button onClick={saveProduct} className="flex-1 bg-stone-900 hover:bg-stone-800 text-white font-bold py-2.5 rounded-xl text-xs">Guardar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL SELECTOR VISUAL DE ICONOS (El que reemplaza al menú feo de Android) */}
+      {showIconPicker && (
+        <div className="fixed inset-0 bg-stone-900/70 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-4 w-full max-w-sm shadow-xl space-y-4">
+            <div className="flex justify-between items-center border-b border-stone-100 pb-2">
+              <h3 className="font-bold text-stone-900 text-sm">Selecciona el ícono</h3>
+              <button onClick={() => setShowIconPicker(false)}><i className="fa-solid fa-xmark text-stone-400"></i></button>
+            </div>
+            <div className="grid grid-cols-4 gap-2 max-h-[60vh] overflow-y-auto p-1">
+              {iconsList.map(icon => (
+                <button key={icon} onClick={() => { setProdData({...prodData, icon}); setShowIconPicker(false); }}
+                  className={`p-3 rounded-xl border flex items-center justify-center text-xl transition ${prodData.icon === icon ? 'border-amber-500 bg-amber-50 text-amber-600' : 'border-stone-200 text-stone-600 hover:bg-stone-50'}`}>
+                  <i className={icon}></i>
+                </button>
+              ))}
             </div>
           </div>
         </div>
