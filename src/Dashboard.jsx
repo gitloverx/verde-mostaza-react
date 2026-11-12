@@ -2,16 +2,22 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 
 export default function Dashboard({ businessName, onLogout }) {
-  // Corregido: 'caja' en lugar de 'cajero'
   const [tab, setTab] = useState('caja');
   const [products, setProducts] = useState([]);
   const [inventory, setInventory] = useState([]);
   const [orders, setOrders] = useState([]);
   const [cart, setCart] = useState([]);
   const [customer, setCustomer] = useState('');
-  const [stats, setStats] = useState({ total_sales: 0, total_orders: 0, top_products: [], daily_sales: [] });
+  const [stats, setStats] = useState({ total_sales: 0, total_orders: 0, top_products: [] });
   const [currentTime, setCurrentTime] = useState(Date.now());
+
+  // Estados Modales
   const [showProdModal, setShowProdModal] = useState(false);
+  const [showIngModal, setShowIngModal] = useState(false);
+  
+  // Formularios
+  const [prodData, setProdData] = useState({ id: null, name: '', description: '', price: 10000, icon: 'fa-solid fa-hotdog', recipe: [] });
+  const [ingData, setIngData] = useState({ id: null, name: '', stock: 0, unit: 'und' });
 
   const token = localStorage.getItem('token');
   const api = axios.create({ baseURL: import.meta.env.VITE_API_URL || 'https://verde-mostaza-backend.onrender.com/api', headers: { Authorization: `Bearer ${token}` } });
@@ -31,6 +37,7 @@ export default function Dashboard({ businessName, onLogout }) {
     } catch (err) { console.error(err); }
   };
 
+  // --- Lógica Caja ---
   const addToCart = (p) => {
     const ex = cart.find(c => c.id === p.id);
     if (ex) setCart(cart.map(c => c.id === p.id ? {...c, qty: c.qty + 1} : c));
@@ -50,6 +57,63 @@ export default function Dashboard({ businessName, onLogout }) {
     } catch (err) { console.error(err); }
   };
 
+  // --- Lógica Inventario ---
+  const openIngModal = (ing = null) => {
+    if (ing) setIngData({ id: ing.id, name: ing.name, stock: ing.stock, unit: ing.unit });
+    else setIngData({ id: null, name: '', stock: 0, unit: 'und' });
+    setShowIngModal(true);
+  };
+
+  const saveIngredient = async () => {
+    try {
+      if (ingData.id) {
+        await api.put(`/inventory/${ingData.id}`, { stock: ingData.stock });
+      } else {
+        await api.post('/inventory', ingData);
+      }
+      setShowIngModal(false); loadData();
+    } catch (err) { alert('Error al guardar ingrediente'); }
+  };
+
+  // --- Lógica Productos (Recetas) ---
+  const openProdModal = (prod = null) => {
+    if (prod) setProdData({ ...prod, recipe: prod.recipe || [] });
+    else setProdData({ id: null, name: '', description: '', price: 10000, icon: 'fa-solid fa-hotdog', recipe: [] });
+    setShowProdModal(true);
+  };
+
+  const addRecipeItem = (ing) => {
+    if (prodData.recipe.find(r => r.ingredient_id === ing.id)) return;
+    setProdData({ ...prodData, recipe: [...prodData.recipe, { ingredient_id: ing.id, name: ing.name, unit: ing.unit, qty: 1 }] });
+  };
+
+  const updateRecipeQty = (ingId, val) => {
+    const q = parseInt(val) || 0;
+    if (q <= 0) setProdData({ ...prodData, recipe: prodData.recipe.filter(r => r.ingredient_id !== ingId) });
+    else setProdData({ ...prodData, recipe: prodData.recipe.map(r => r.ingredient_id === ingId ? { ...r, qty: q } : r) });
+  };
+
+  const saveProduct = async () => {
+    try {
+      const payload = {
+        name: prodData.name.trim().toUpperCase(),
+        description: prodData.description.trim(),
+        price: parseInt(prodData.price),
+        icon: prodData.icon,
+        recipe: prodData.recipe
+      };
+      if (prodData.id) await api.put(`/products/${prodData.id}`, payload);
+      else await api.post('/products', payload);
+      setShowProdModal(false); loadData();
+    } catch (err) { alert('Error al guardar producto'); }
+  };
+
+  const deleteProduct = async () => {
+    if (!window.confirm("¿Eliminar producto?")) return;
+    try { await api.delete(`/products/${prodData.id}`); setShowProdModal(false); loadData(); } catch (err) {}
+  };
+
+  // --- Lógica Cocina ---
   const updateOrderStatus = async (id, status) => {
     try { await api.put(`/orders/${id}`, { status }); loadData(); } catch (err) {}
   };
@@ -85,8 +149,9 @@ export default function Dashboard({ businessName, onLogout }) {
           <button onClick={onLogout} className="text-stone-400 hover:text-rose-600 p-1 text-xs"><i className="fa-solid fa-right-from-bracket"></i></button>
         </div>
       </header>
-      
+
       <main className="flex-1 max-w-md w-full mx-auto p-3 space-y-4">
+        {/* CAJA */}
         {tab === 'caja' && (
           <>
             <div className="bg-white rounded-2xl p-2.5 shadow-sm border border-stone-200 flex gap-2 items-center">
@@ -140,6 +205,7 @@ export default function Dashboard({ businessName, onLogout }) {
           </>
         )}
 
+        {/* COCINA */}
         {tab === 'cocina' && (
           <div className="space-y-4">
             <div className="flex justify-between items-center px-1">
@@ -168,14 +234,16 @@ export default function Dashboard({ businessName, onLogout }) {
           </div>
         )}
 
+        {/* INVENTARIO */}
         {tab === 'inventario' && (
           <div className="space-y-4">
             <div className="flex justify-between items-center px-1">
               <span className="text-xs font-bold text-stone-400 uppercase tracking-wider">Inventario</span>
+              <button onClick={() => openIngModal()} className="bg-stone-900 text-white text-xs font-bold px-4 py-2 rounded-xl"><i className="fa-solid fa-plus"></i> Nuevo ingrediente</button>
             </div>
             {inventory.map(i => (
               <div key={i.id} className="bg-white rounded-2xl p-4 shadow-sm border border-stone-200">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-stone-100 flex items-center justify-center"><i className="fa-solid fa-box text-stone-700 text-sm"></i></div>
                     <div>
@@ -183,12 +251,14 @@ export default function Dashboard({ businessName, onLogout }) {
                       <p className="text-[11px] text-stone-400">Stock: <span className="font-bold text-stone-700">{i.stock} {i.unit}</span></p>
                     </div>
                   </div>
+                  <button onClick={() => openIngModal(i)} className="w-8 h-8 bg-rose-50 text-rose-600 rounded-lg text-xs"><i className="fa-solid fa-pen"></i></button>
                 </div>
               </div>
             ))}
           </div>
         )}
 
+        {/* ADMIN */}
         {tab === 'admin' && (
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-2">
@@ -201,16 +271,50 @@ export default function Dashboard({ businessName, onLogout }) {
                 <h3 className="text-xl font-black text-stone-900 mt-1">{stats.total_orders}</h3>
               </div>
             </div>
+            
+            <div className="bg-white rounded-2xl p-4 shadow-sm border border-stone-200 space-y-3">
+              <span className="text-xs font-bold text-stone-400 uppercase tracking-wider block">Estadísticas de Ventas</span>
+              <div>
+                <p className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider mb-1"><i className="fa-solid fa-arrow-trend-up"></i> Más vendidos</p>
+                {stats.top_products?.slice(0, 3).map((p, i) => (
+                  <div key={i} className="flex justify-between bg-emerald-50 p-2 rounded-lg text-xs border border-emerald-100 mb-1">
+                    <span className="font-semibold text-emerald-800">{i+1}. {p.product_name}</span>
+                    <span className="font-bold text-emerald-700">{p.total_qty} und</span>
+                  </div>
+                ))}
+                {stats.top_products?.length === 0 && <p className="text-xs text-stone-400">Sin ventas aún.</p>}
+              </div>
+              <div>
+                <p className="text-[10px] font-bold text-rose-600 uppercase tracking-wider mb-1"><i className="fa-solid fa-arrow-trend-down"></i> Menos vendidos</p>
+                {stats.top_products?.slice(-2).reverse().map((p, i) => (
+                  <div key={i} className="flex justify-between bg-rose-50 p-2 rounded-lg text-xs border border-rose-100 mb-1">
+                    <span className="font-semibold text-rose-800">{i+1}. {p.product_name}</span>
+                    <span className="font-bold text-rose-700">{p.total_qty} und</span>
+                  </div>
+                ))}
+                {stats.top_products?.length === 0 && <p className="text-xs text-stone-400">Sin ventas aún.</p>}
+              </div>
+            </div>
+
             <div className="bg-white rounded-2xl p-4 shadow-sm border border-stone-200">
-              <span className="text-xs font-bold text-stone-400 uppercase tracking-wider">Productos</span>
-              <div className="mt-3 space-y-2">
+              <div className="flex justify-between items-center mb-3">
+                <span className="text-xs font-bold text-stone-400 uppercase tracking-wider">Productos</span>
+                <button onClick={() => openProdModal()} className="bg-stone-900 text-white text-[11px] font-bold px-3 py-1.5 rounded-lg"><i className="fa-solid fa-plus"></i> Nuevo producto</button>
+              </div>
+              <div className="space-y-2">
                 {products.map(p => (
                   <div key={p.id} className="bg-stone-50 p-3 rounded-xl flex justify-between items-center">
-                    <div>
-                      <h4 className="font-bold text-sm text-stone-900">{p.name}</h4>
-                      <p className="text-[10px] text-stone-400">{p.description || 'Sin descripción'}</p>
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 bg-stone-200 rounded-lg flex items-center justify-center text-xs"><i className={p.icon || "fa-solid fa-hotdog"}></i></div>
+                      <div>
+                        <h4 className="font-bold text-sm text-stone-900">{p.name}</h4>
+                        <p className="text-[10px] text-stone-400">{p.description || 'Sin descripción'}</p>
+                      </div>
                     </div>
-                    <span className="font-bold text-amber-600 text-xs">${p.price?.toLocaleString()}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-amber-600 text-xs">${p.price?.toLocaleString()}</span>
+                      <button onClick={() => openProdModal(p)} className="bg-stone-200 px-2 py-1 rounded-lg text-[10px]"><i className="fa-solid fa-pen"></i></button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -218,6 +322,103 @@ export default function Dashboard({ businessName, onLogout }) {
           </div>
         )}
       </main>
+
+      {/* MODAL INGREDIENTE */}
+      {showIngModal && (
+        <div className="fixed inset-0 bg-stone-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-5 w-full max-w-sm shadow-xl space-y-4">
+            <div className="flex justify-between items-center border-b pb-3">
+              <h3 className="font-bold text-stone-900 text-sm">{ingData.id ? 'Editar' : 'Nuevo'} Ingrediente</h3>
+              <button onClick={() => setShowIngModal(false)}><i className="fa-solid fa-xmark text-stone-400"></i></button>
+            </div>
+            <div>
+              <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Nombre</label>
+              <input value={ingData.name} onChange={e => setIngData({...ingData, name: e.target.value})} disabled={!!ingData.id} placeholder="Ej: Chorizo" className="w-full bg-stone-100 border border-stone-200 rounded-xl px-3 py-2 text-sm font-medium focus:outline-none" />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Stock</label>
+                <input type="number" value={ingData.stock} onChange={e => setIngData({...ingData, stock: e.target.value})} className="w-full bg-stone-100 border border-stone-200 rounded-xl px-3 py-2 text-sm font-bold text-center focus:outline-none" />
+              </div>
+              <div>
+                <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Unidad</label>
+                <select value={ingData.unit} onChange={e => setIngData({...ingData, unit: e.target.value})} className="w-full bg-stone-100 border border-stone-200 rounded-xl px-3 py-2 text-sm font-medium focus:outline-none">
+                  <option value="und">unidades</option><option value="porc">porciones</option><option value="kg">kg</option><option value="L">L</option>
+                </select>
+              </div>
+            </div>
+            <div className="flex gap-2 pt-2">
+              <button onClick={() => setShowIngModal(false)} className="flex-1 bg-stone-100 font-bold py-2.5 rounded-xl text-xs">Cancelar</button>
+              <button onClick={saveIngredient} className="flex-1 bg-stone-900 text-white font-bold py-2.5 rounded-xl text-xs">Guardar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL PRODUCTO CON RECETA */}
+      {showProdModal && (
+        <div className="fixed inset-0 bg-stone-900/60 backdrop-blur-sm z-50 flex items-start justify-center p-3 py-6 overflow-y-auto">
+          <div className="bg-white rounded-2xl p-4 w-full max-w-md shadow-xl space-y-3 border border-stone-100">
+            <div className="flex justify-between items-center border-b border-stone-100 pb-2">
+              <h3 className="font-bold text-stone-900 text-sm">{prodData.id ? 'Editar' : 'Nuevo'} Producto</h3>
+              <button onClick={() => setShowProdModal(false)} className="text-stone-400 hover:text-rose-600 p-1 text-sm"><i className="fa-solid fa-xmark"></i></button>
+            </div>
+            
+            <div>
+              <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Nombre</label>
+              <input value={prodData.name} onChange={e => setProdData({...prodData, name: e.target.value})} placeholder="Ej: ESPECIAL" className="w-full bg-stone-100 border border-stone-200 rounded-xl px-3 py-2 text-sm font-bold uppercase focus:outline-none" />
+            </div>
+            
+            <div>
+              <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Descripción</label>
+              <input value={prodData.description} onChange={e => setProdData({...prodData, description: e.target.value})} placeholder="Ej: Chorizo con queso" className="w-full bg-stone-100 border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none" />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Precio</label>
+                <input type="number" value={prodData.price} onChange={e => setProdData({...prodData, price: e.target.value})} className="w-full bg-stone-100 border border-stone-200 rounded-xl px-3 py-2 text-sm font-bold text-center focus:outline-none" />
+              </div>
+              <div>
+                <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Icono</label>
+                <select value={prodData.icon} onChange={e => setProdData({...prodData, icon: e.target.value})} className="w-full bg-stone-100 border border-stone-200 rounded-xl px-2 py-2 text-sm font-medium focus:outline-none">
+                  <option value="fa-solid fa-hotdog">Perro</option><option value="fa-solid fa-pizza-slice">Pizza</option><option value="fa-solid fa-burger">Hamburguesa</option><option value="fa-solid fa-glass-water">Bebida</option><option value="fa-solid fa-utensils">Combo</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Receta (Ingredientes)</label>
+              <div className="bg-stone-50 rounded-xl p-2 border border-stone-100 max-h-48 overflow-y-auto space-y-1.5 mt-1">
+                {prodData.recipe?.map(r => (
+                  <div key={r.ingredient_id} className="flex justify-between items-center bg-white p-2 rounded-lg border border-stone-200 mb-1 shadow-sm">
+                    <span className="text-xs font-semibold text-stone-900 truncate">{r.name}</span>
+                    <div className="flex items-center gap-2">
+                      <input type="number" min="0" value={r.qty} onChange={e => updateRecipeQty(r.ingredient_id, e.target.value)} className="w-16 text-center text-sm font-bold bg-stone-50 border border-stone-200 rounded-lg py-1 focus:outline-none" />
+                      <span className="text-[10px] text-stone-400 w-6">{r.unit}</span>
+                    </div>
+                  </div>
+                ))}
+                
+                {prodData.recipe?.length === 0 && <p className="text-stone-400 text-xs py-2 text-center">No hay ingredientes en la receta.</p>}
+                
+                <div className="mt-2 border-t border-stone-200 pt-2">
+                  <select onChange={e => { const ing = inventory.find(i => i.id == e.target.value); if(ing) addRecipeItem(ing); e.target.value=""; }} className="w-full bg-white border border-stone-200 rounded-lg p-2 text-xs font-bold text-stone-700">
+                    <option value="">+ Añadir ingrediente a la receta...</option>
+                    {inventory.filter(i => !prodData.recipe?.find(r => r.ingredient_id === i.id)).map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              {prodData.id && <button onClick={deleteProduct} className="bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold py-2.5 px-3 rounded-xl text-xs"><i className="fa-solid fa-trash"></i></button>}
+              <button onClick={() => setShowProdModal(false)} className="flex-1 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold py-2.5 rounded-xl text-xs">Cancelar</button>
+              <button onClick={saveProduct} className="flex-1 bg-stone-900 hover:bg-stone-800 text-white font-bold py-2.5 rounded-xl text-xs">Guardar</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <nav className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-stone-200 py-2 px-3 flex justify-around items-center z-40 max-w-md mx-auto">
         {['caja', 'cocina', 'inventario', 'admin'].map(t => (
