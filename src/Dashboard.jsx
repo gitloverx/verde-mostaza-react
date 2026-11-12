@@ -137,8 +137,8 @@ export default function Dashboard({ businessName, onLogout }) {
 
   // Lista completa de íconos disponibles para todos los usuarios
   const iconsList = [
-    'fa-solid fa-hotdog', 'fa-solid fa-burger', 'fa-solid fa-pizza-slice', 'fa-solid fa-taco',
-    'fa-solid fa-burrito', 'fa-solid fa-drumstick-bite', 'fa-solid fa-fish', 'fa-solid fa-bacon',
+    'fa-solid fa-hotdog', 'fa-solid fa-burger', 'fa-solid fa-pizza-slice', 'fa-solid fa-fire',
+    'fa-solid fa-wheat-awn', 'fa-solid fa-drumstick-bite', 'fa-solid fa-fish', 'fa-solid fa-cow',
     'fa-solid fa-egg', 'fa-solid fa-cheese', 'fa-solid fa-bread-slice', 'fa-solid fa-bowl-food',
     'fa-solid fa-utensils', 'fa-solid fa-pepper-hot', 'fa-solid fa-carrot', 'fa-solid fa-apple-whole',
     'fa-solid fa-lemon', 'fa-solid fa-ice-cream', 'fa-solid fa-cookie', 'fa-solid fa-cake-candles',
