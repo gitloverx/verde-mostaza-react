@@ -31,22 +31,17 @@ jobs:
         npx cap add android
         npx cap sync android
 
-    - name: Setup Java
+    - name: Setup Java 21
       uses: actions/setup-java@v4
       with:
         distribution: 'temurin'
-        java-version: '17'
-
-    - name: Accept Android Licenses
-      run: |
-        yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
+        java-version: '21'
 
     - name: Build APK with Gradle
       run: |
         cd android
-        echo "sdk.dir=$ANDROID_HOME" > local.properties
         chmod +x gradlew
-        ./gradlew assembleDebug --stacktrace
+        ./gradlew assembleDebug
 
     - name: Upload APK
       uses: actions/upload-artifact@v4

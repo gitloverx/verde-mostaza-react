@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Verde Mostaza</string>
+    <string name="title_activity_main">Verde Mostaza</string>
+    <string name="package_name">com.verdemostaza.app</string>
+    <string name="custom_url_scheme">com.verdemostaza.app</string>
+</resources>
