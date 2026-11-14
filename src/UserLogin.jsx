@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
 
 export default function UserLogin({ setUser }) {
@@ -8,24 +8,43 @@ export default function UserLogin({ setUser }) {
   const [businessName, setBusinessName] = useState('');
   const [message, setMessage] = useState('');
 
-  const apiUrl = import.meta.env.VITE_API_URL || 'https://verde-mostaza-backend.onrender.com/api';
+  // Alerta de prueba para saber si JStudio compiló esto
+  useEffect(() => {
+    alert("¡APP ACTUALIZADA V3!");
+  }, []);
+
+  const API_URL = "https://verde-mostaza-backend.onrender.com/api";
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setMessage('Cargando...');
+    setMessage('Conectando (espera hasta 60s si el servidor está dormido)...');
     try {
       if (isLogin) {
-        const res = await axios.post(`${apiUrl}/login`, { email, password });
+        const res = await axios.post(`${API_URL}/login`, { email, password }, { timeout: 60000 });
         localStorage.setItem('token', res.data.token);
         localStorage.setItem('businessName', res.data.business_name);
         setUser(res.data.business_name);
       } else {
-        await axios.post(`${apiUrl}/register`, { email, password, business_name: businessName, business_slug: businessName.toLowerCase().replace(/ /g, '-') });
+        await axios.post(`${API_URL}/register`, { email, password, business_name: businessName, business_slug: businessName.toLowerCase().replace(/ /g, '-') }, { timeout: 60000 });
         setMessage('Usuario creado. Inicia sesión.');
         setIsLogin(true);
       }
     } catch (err) {
-      setMessage(err.response?.data?.error || 'Error de conexión con el servidor');
+      console.error("ERROR REAL:", err);
+      
+      let errorMsg = "Error desconocido";
+      if (err.code === "ECONNABORTED") {
+        errorMsg = "Tiempo de espera agotado (60s). (Render dormido).";
+      } else if (err.message === "Network Error") {
+        errorMsg = "Network Error. (Sin internet o bloqueo de red).";
+      } else if (err.response) {
+        errorMsg = `Error ${err.response.status}: ${err.response.data.error || 'Error del servidor'}`;
+      } else {
+        errorMsg = err.message;
+      }
+      
+      setMessage(errorMsg);
+      alert("DEBUG ERROR: " + errorMsg); // Ventana emergente con el error real
     }
   };
 
@@ -39,7 +58,7 @@ export default function UserLogin({ setUser }) {
           <h1 className="text-2xl font-black text-stone-900 tracking-tight">VERDE MOSTAZA</h1>
           <p className="text-sm text-stone-500 mt-1">{isLogin ? 'Inicia sesión en tu tienda' : 'Crea tu cuenta de vendedor'}</p>
         </div>
-        {message && <div className={`p-3 rounded-lg mb-4 text-sm font-medium ${message.includes('exitoso') || message.includes('creado') ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{message}</div>}
+        {message && <div className={`p-3 rounded-lg mb-4 text-xs font-medium ${message.includes('exitoso') || message.includes('creado') ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{message}</div>}
         <form onSubmit={handleSubmit} className="space-y-4">
           {!isLogin && <input type="text" placeholder="Nombre del Negocio" value={businessName} onChange={(e) => setBusinessName(e.target.value)} required className="w-full bg-stone-100 border border-stone-200 rounded-xl px-4 py-3 text-sm focus:outline-none" />}
           <input type="email" placeholder="Correo Electrónico" value={email} onChange={(e) => setEmail(e.target.value)} required className="w-full bg-stone-100 border border-stone-200 rounded-xl px-4 py-3 text-sm focus:outline-none" />
